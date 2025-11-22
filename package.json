@@ -1,0 +1,18 @@
+{
+  "name": "emerald-symbiotic-relay",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test:contracts": "forge test --root contracts",
+    "build:worker": "npm run build --workspace=emerald-da-worker",
+    "start:worker": "npm run start --workspace=emerald-da-worker"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "typescript": "^5.3.3"
+  }
+}
