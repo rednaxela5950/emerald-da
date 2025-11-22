@@ -11,7 +11,7 @@ When finishing a step, mark it `[x]` and add a brief “Result” section to the
 
 ---
 
-## Step 0 — Repo bootstrap & environment [~]
+## Step 0 — Repo bootstrap & environment [x]
 
 - [ ] 0.1 Create repo structure:
   - `/contracts` for Solidity contracts.
@@ -29,7 +29,7 @@ When finishing a step, mark it `[x]` and add a brief “Result” section to the
 
 ---
 
-## Step 1 — DA data model & core contracts (Phase 1 shell)
+## Step 1 — DA data model & core contracts (Phase 1 shell) [x]
 
 Goal: Have on-chain contracts that represent posts, their DA status, and the adapter entry point for Relay, with no actual Symbiotic integration yet (just interfaces and events).
 
