@@ -22,7 +22,7 @@ contract EmeraldContractsTest is Test {
     function testCreatePostStoresData() public {
         bytes32 postId = registry.createPost(CID, KZG);
 
-        EmeraldPostRegistry.Post memory post = registry.getPost(postId);
+        Post memory post = registry.getPost(postId);
         assertEq(post.postId, postId);
         assertEq(post.cidHash, CID);
         assertEq(post.kzgCommit, KZG);
@@ -88,5 +88,67 @@ contract EmeraldContractsTest is Test {
 
         vm.expectRevert(EmeraldDaAdapter.InvalidStake.selector);
         adapter.recordPhase1Result(postId, true, 101, 100, voters);
+    }
+
+    function testHandleAttestationPassesAndUpdatesState() public {
+        bytes32 postId = registry.createPost(CID, KZG);
+        address[] memory voters = new address[](2);
+        voters[0] = address(0x1);
+        voters[1] = address(0x2);
+
+        vm.expectEmit(true, true, true, true, address(adapter));
+        emit EmeraldDaAdapter.Phase1DaPassed(postId, 60, 100);
+        adapter.handleDaAttestation(postId, CID, KZG, voters, 60, 100);
+
+        EmeraldDaAdapter.Phase1State memory state = adapter.getPhase1State(postId);
+        assertTrue(state.passed);
+        assertEq(state.yesStake, 60);
+        assertEq(state.totalStake, 100);
+        assertEq(state.yesVoters.length, 2);
+        assertEq(uint256(registry.getPost(postId).status), uint256(PostStatus.Phase1Passed));
+    }
+
+    function testHandleAttestationFailsWhenBelowThreshold() public {
+        bytes32 postId = registry.createPost(CID, KZG);
+        address[] memory voters = new address[](1);
+        voters[0] = address(0x1);
+
+        vm.expectEmit(true, true, true, true, address(adapter));
+        emit EmeraldDaAdapter.Phase1DaFailed(postId, 40, 100);
+        adapter.handleDaAttestation(postId, CID, KZG, voters, 40, 100);
+
+        EmeraldDaAdapter.Phase1State memory state = adapter.getPhase1State(postId);
+        assertFalse(state.passed);
+        assertEq(state.yesStake, 40);
+        assertEq(state.totalStake, 100);
+        assertEq(uint256(registry.getPost(postId).status), uint256(PostStatus.Phase1Failed));
+    }
+
+    function testHandleAttestationRejectsMismatchedData() public {
+        bytes32 postId = registry.createPost(CID, KZG);
+        address[] memory voters = new address[](1);
+        voters[0] = address(0x1);
+
+        vm.expectRevert(EmeraldDaAdapter.PostDataMismatch.selector);
+        adapter.handleDaAttestation(postId, bytes32("bad"), KZG, voters, 60, 100);
+
+        vm.expectRevert(EmeraldDaAdapter.PostDataMismatch.selector);
+        adapter.handleDaAttestation(postId, CID, bytes32("bad"), voters, 60, 100);
+    }
+
+    function testHandleAttestationOnlyRelayAllowed() public {
+        bytes32 postId = registry.createPost(CID, KZG);
+        address[] memory voters = new address[](1);
+        voters[0] = address(0x1);
+
+        address untrusted = address(0xBEEF);
+        adapter.setRelay(untrusted);
+
+        vm.prank(address(this));
+        vm.expectRevert(EmeraldDaAdapter.NotAuthorized.selector);
+        adapter.handleDaAttestation(postId, CID, KZG, voters, 60, 100);
+
+        vm.prank(untrusted);
+        adapter.handleDaAttestation(postId, CID, KZG, voters, 60, 100);
     }
 }

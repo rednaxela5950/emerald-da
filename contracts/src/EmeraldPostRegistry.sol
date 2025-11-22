@@ -1,17 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {PostStatus} from "./PostTypes.sol";
+import {PostStatus, Post} from "./PostTypes.sol";
 
 contract EmeraldPostRegistry {
-    struct Post {
-        bytes32 postId;
-        bytes32 cidHash;
-        bytes32 kzgCommit;
-        PostStatus status;
-        address creator;
-    }
-
     address public owner;
     address public daAdapter;
     uint256 public postCount;
