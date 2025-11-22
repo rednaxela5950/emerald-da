@@ -166,7 +166,7 @@ Goal: Provide an off-chain worker that ties blobs, Relay attestation, and on-cha
 
 ---
 
-## Step 5 — Front-end demo UI
+## Step 5 — Front-end demo UI [x]
 
 Goal: Build a simple UI that demonstrates posting and DA resolution, including failure scenarios.
 

@@ -11,7 +11,9 @@
     "build:worker": "npm run build --workspace=emerald-da-worker",
     "start:worker": "npm run start --workspace=emerald-da-worker",
     "build:data-service": "npm run build --workspace=dummy-data-service",
-    "start:data-service": "npm run start --workspace=dummy-data-service"
+    "start:data-service": "npm run start --workspace=dummy-data-service",
+    "dev:frontend": "npm run dev --workspace=emerald-da-frontend",
+    "build:frontend": "npm run build --workspace=emerald-da-frontend"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",

@@ -42,4 +42,12 @@ Run the worker scaffold (expects `DATA_SERVICE_URL`, defaults to `http://localho
 npm run start:worker
 ```
 
+Run the frontend (Vite + React, defaults to `http://localhost:5173`):
+
+```bash
+npm run dev:frontend
+```
+
+Set `VITE_DATA_SERVICE_URL` to point the UI at your dummy data service instance.
+
 A fuller setup (UI, worker wiring, and Relay integration) will be added in later steps of the plan.
