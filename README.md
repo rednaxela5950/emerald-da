@@ -42,6 +42,13 @@ Run the worker scaffold (expects `DATA_SERVICE_URL`, defaults to `http://localho
 npm run start:worker
 ```
 
+Optional on-chain listeners (set these to enable):
+
+- `RPC_URL` — JSON-RPC endpoint
+- `PRIVATE_KEY` — wallet for submitting custody proofs
+- `REGISTRY_ADDRESS` — EmeraldPostRegistry address
+- `ADAPTER_ADDRESS` — EmeraldDaAdapter address
+
 Run the frontend (Vite + React, defaults to `http://localhost:5173`):
 
 ```bash

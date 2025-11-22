@@ -1,20 +1,33 @@
-# Node
-node_modules
+# Node / JavaScript
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.DS_Store
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Build outputs
+dist/
+coverage/
+.vite/
+
+# Environment
 .env*
-dist
-coverage
+!.env.example
 
 # Editor
-.idea
-.vscode
+.idea/
+.vscode/
 *.swp
 
+# OS
+.DS_Store
+
 # Foundry
-contracts/out
-contracts/cache
-contracts/lib
+contracts/out/
+contracts/cache/
+contracts/lib/
+contracts/broadcast/
