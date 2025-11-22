@@ -68,7 +68,7 @@ Goal: Have on-chain contracts that represent posts, their DA status, and the ada
 
 ---
 
-## Step 2 — Symbiotic Relay Phase 1 integration (attested YES vote)
+## Step 2 — Symbiotic Relay Phase 1 integration (attested YES vote) [x]
 
 Goal: Wire `EmeraldDaAdapter` to accept and process a Symbiotic Relay DA attestation, acting as the Phase 1 yes/no vote.
 

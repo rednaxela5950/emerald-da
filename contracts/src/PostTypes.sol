@@ -9,3 +9,11 @@ enum PostStatus {
     Unavailable,
     Inconclusive
 }
+
+struct Post {
+    bytes32 postId;
+    bytes32 cidHash;
+    bytes32 kzgCommit;
+    PostStatus status;
+    address creator;
+}
