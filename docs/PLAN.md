@@ -96,7 +96,7 @@ Goal: Wire `EmeraldDaAdapter` to accept and process a Symbiotic Relay DA attesta
 
 ---
 
-## Step 3 — Custody challenge logic (Phase 2, with mock KZG)
+## Step 3 — Custody challenge logic (Phase 2, with mock KZG) [x]
 
 Goal: Implement the second phase where a random subset of yes‑voters must answer custody challenges derived from `kzgCommit`, using mocked KZG verification.
 

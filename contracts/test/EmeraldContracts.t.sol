@@ -5,17 +5,20 @@ import "forge-std/Test.sol";
 import "../src/PostTypes.sol";
 import "../src/EmeraldPostRegistry.sol";
 import "../src/EmeraldDaAdapter.sol";
+import "../src/MockKzgVerifier.sol";
 
 contract EmeraldContractsTest is Test {
     EmeraldPostRegistry private registry;
     EmeraldDaAdapter private adapter;
+    MockKzgVerifier private verifier;
 
     bytes32 private constant CID = keccak256("cid");
     bytes32 private constant KZG = keccak256("kzg");
 
     function setUp() public {
         registry = new EmeraldPostRegistry(address(0));
-        adapter = new EmeraldDaAdapter(address(registry));
+        verifier = new MockKzgVerifier();
+        adapter = new EmeraldDaAdapter(address(registry), address(verifier));
         registry.setDaAdapter(address(adapter));
     }
 
@@ -150,5 +153,81 @@ contract EmeraldContractsTest is Test {
 
         vm.prank(untrusted);
         adapter.handleDaAttestation(postId, CID, KZG, voters, 60, 100);
+    }
+
+    function testStartChallengesRequiresPhase1Pass() public {
+        bytes32 postId = registry.createPost(CID, KZG);
+
+        vm.expectRevert(EmeraldDaAdapter.Phase1Required.selector);
+        adapter.startCustodyChallenges(postId);
+    }
+
+    function testCustodyChallengesSuccessFlow() public {
+        bytes32 postId = _createPhase1PassedPost();
+        address[] memory voters = _defaultVoters();
+
+        adapter.startCustodyChallenges(postId);
+
+        EmeraldDaAdapter.CustodyChallenge[] memory challenges = adapter.getCustodyChallenges(postId);
+        assertEq(challenges.length, voters.length);
+
+        vm.prank(voters[0]);
+        adapter.submitCustodyProof(postId, voters[0], 1, bytes("y"), bytes("pi"));
+        vm.prank(voters[1]);
+        adapter.submitCustodyProof(postId, voters[1], 2, bytes("y"), bytes("pi"));
+
+        vm.warp(block.timestamp + adapter.CHALLENGE_RESPONSE_WINDOW() + 1);
+        adapter.finalizePostFromCustody(postId);
+
+        assertEq(uint256(registry.getPost(postId).status), uint256(PostStatus.Available));
+    }
+
+    function testCustodyChallengesFailureFlow() public {
+        bytes32 postId = _createPhase1PassedPost();
+        address[] memory voters = _defaultVoters();
+
+        adapter.startCustodyChallenges(postId);
+
+        verifier.setShouldVerify(false);
+        vm.prank(voters[0]);
+        adapter.submitCustodyProof(postId, voters[0], 1, bytes("y"), bytes("pi"));
+        vm.prank(voters[1]);
+        adapter.submitCustodyProof(postId, voters[1], 2, bytes("y"), bytes("pi"));
+
+        vm.warp(block.timestamp + adapter.CHALLENGE_RESPONSE_WINDOW() + 1);
+        adapter.finalizePostFromCustody(postId);
+
+        assertEq(uint256(registry.getPost(postId).status), uint256(PostStatus.Unavailable));
+    }
+
+    function testFinalizeBeforeWindowReverts() public {
+        bytes32 postId = _createPhase1PassedPost();
+        address[] memory voters = _defaultVoters();
+
+        adapter.startCustodyChallenges(postId);
+        vm.prank(voters[0]);
+        adapter.submitCustodyProof(postId, voters[0], 1, bytes("y"), bytes("pi"));
+
+        vm.expectRevert(EmeraldDaAdapter.ChallengeWindowNotElapsed.selector);
+        adapter.finalizePostFromCustody(postId);
+    }
+
+    function testSubmitUnknownChallengeReverts() public {
+        bytes32 postId = _createPhase1PassedPost();
+        adapter.startCustodyChallenges(postId);
+
+        vm.expectRevert(EmeraldDaAdapter.UnknownChallenge.selector);
+        adapter.submitCustodyProof(postId, address(0xBEEF), 1, bytes("y"), bytes("pi"));
+    }
+
+    function _createPhase1PassedPost() internal returns (bytes32 postId) {
+        postId = registry.createPost(CID, KZG);
+        adapter.recordPhase1Result(postId, true, 80, 100, _defaultVoters());
+    }
+
+    function _defaultVoters() internal pure returns (address[] memory voters) {
+        voters = new address[](2);
+        voters[0] = address(0x1);
+        voters[1] = address(0x2);
     }
 }
