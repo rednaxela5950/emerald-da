@@ -193,7 +193,7 @@ Goal: Build a simple UI that demonstrates posting and DA resolution, including f
 
 ---
 
-## Step 6 — Polish, docs, and demo script
+## Step 6 — Polish, docs, and demo script [x]
 
 - [ ] 6.1 Improve README:
   - Overview of architecture.

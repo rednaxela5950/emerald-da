@@ -1,60 +1,57 @@
 # Emerald + Symbiotic Relay
 
-Monorepo for experimenting with a two-phase data availability workflow on Emerald, backed by Symbiotic Relay attestations and a custody challenge step.
+Monorepo exploring a two-phase data availability flow on Emerald: Phase 1 attestation via Symbiotic Relay, followed by a custody challenge (mock KZG) to discourage lazy voters.
 
-## Structure
-- `contracts/` — Foundry project for on-chain contracts and tests.
-- `packages/emerald-da-worker/` — Node/TypeScript worker that will watch chain events and interact with storage (scaffolded).
-- `apps/frontend/` — Placeholder for the demo UI to be built in later steps.
-- `docs/` — Plan and step-by-step specs.
+## Components
+- `contracts/` — Foundry contracts: post registry, DA adapter, mock KZG verifier, and tests.
+- `packages/dummy-data-service/` — Express in-memory blob store (sha256-based `cidHash`).
+- `packages/emerald-da-worker/` — Worker scaffold to fetch blobs, verify hashes, and listen for on-chain events (optional).
+- `apps/frontend/` — Vite + React UI to upload blobs to the data service and simulate post status transitions.
+- `docs/` — Plan and step specs.
 
-## Getting started
-Prerequisites: Node 18+, npm, and Foundry installed (`forge` available on PATH).
+## Prerequisites
+- Node 18+ and npm
+- Foundry (`forge`) on PATH
 
-Install dependencies and build the worker scaffold:
-
+## Install and build
 ```bash
 npm install
+forge install --root contracts   # once
 npm run build:worker
+npm run build:data-service
+npm run build:frontend
 ```
 
-Install Foundry dependencies (once):
-
-```bash
-forge install --root contracts
-```
-
-Run Foundry tests:
-
+Run tests:
 ```bash
 npm run test:contracts
 ```
 
-Run the dummy data service:
-
+## Run the stack locally
+In separate terminals:
 ```bash
+# 1) Dummy data service (default http://localhost:4000)
 npm run start:data-service
+
+# 2) Worker scaffold (fetch/verify blobs; optional chain listener)
+DATA_SERVICE_URL=http://localhost:4000 npm run start:worker
+
+# 3) Frontend (default http://localhost:5173)
+VITE_DATA_SERVICE_URL=http://localhost:4000 npm run dev:frontend
 ```
 
-Run the worker scaffold (expects `DATA_SERVICE_URL`, defaults to `http://localhost:4000`):
-
-```bash
-npm run start:worker
-```
-
-Optional on-chain listeners (set these to enable):
-
+Optional on-chain listeners for the worker (no-op unless set):
 - `RPC_URL` — JSON-RPC endpoint
-- `PRIVATE_KEY` — wallet for submitting custody proofs
+- `PRIVATE_KEY` — wallet for custody proofs
 - `REGISTRY_ADDRESS` — EmeraldPostRegistry address
 - `ADAPTER_ADDRESS` — EmeraldDaAdapter address
 
-Run the frontend (Vite + React, defaults to `http://localhost:5173`):
+## Demo script (manual)
+1) Start data service and frontend as above. (Worker optional.)
+2) In the UI, upload a file → see returned `cidHash` and placeholder `kzgCommit`.
+3) Simulate outcomes via the buttons on each post:
+   - Phase 1 pass/fail (Relay attestation analogue).
+   - Finalize as `Available` or `Unavailable` (custody success/failure analogue).
+4) Observe badge colors change; blob hash matches the data service (`sha256` placeholder).
 
-```bash
-npm run dev:frontend
-```
-
-Set `VITE_DATA_SERVICE_URL` to point the UI at your dummy data service instance.
-
-A fuller setup (UI, worker wiring, and Relay integration) will be added in later steps of the plan.
+Contract-level tests already cover Phase 1 and custody logic with mocks; see `contracts/test/`.
