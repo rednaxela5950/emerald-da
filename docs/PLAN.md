@@ -138,7 +138,7 @@ Goal: Implement the second phase where a random subset of yes‑voters must answ
 
 ---
 
-## Step 4 — Dummy data network & DA worker
+## Step 4 — Dummy data network & DA worker [x]
 
 Goal: Provide an off-chain worker that ties blobs, Relay attestation, and on-chain contracts together, plus a simple storage service.
 

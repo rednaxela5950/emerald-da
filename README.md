@@ -30,4 +30,16 @@ Run Foundry tests:
 npm run test:contracts
 ```
 
+Run the dummy data service:
+
+```bash
+npm run start:data-service
+```
+
+Run the worker scaffold (expects `DATA_SERVICE_URL`, defaults to `http://localhost:4000`):
+
+```bash
+npm run start:worker
+```
+
 A fuller setup (UI, worker wiring, and Relay integration) will be added in later steps of the plan.
