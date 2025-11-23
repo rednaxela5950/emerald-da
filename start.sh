@@ -8,6 +8,39 @@ HOST="${ANVIL_HOST:-0.0.0.0}"
 PORT="${ANVIL_PORT:-8545}"
 CHAIN_ID="${ANVIL_CHAIN_ID:-31337}"
 
+force_free_port_if_anvil() {
+  if ! command -v lsof >/dev/null 2>&1; then
+    return
+  fi
+
+  for _ in {1..5}; do
+    local pids
+    pids=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null | sed -n 's/^p//p')
+    if [[ -z "${pids:-}" ]]; then
+      return
+    fi
+    local killed=false
+    for pid in $pids; do
+      local cmd
+      cmd=$(ps -o comm= -p "$pid" 2>/dev/null || true)
+      if [[ "$cmd" == *anvil* ]]; then
+        echo "Killing leftover anvil on port $PORT (pid $pid)..."
+        kill "$pid" >/dev/null 2>&1 || true
+        sleep 0.2
+        if kill -0 "$pid" >/dev/null 2>&1; then
+          kill -9 "$pid" >/dev/null 2>&1 || true
+        fi
+        killed=true
+      fi
+    done
+    if [[ "$killed" == true ]]; then
+      sleep 0.2
+      continue
+    fi
+    break
+  done
+}
+
 ensure_port_free() {
   if ! command -v lsof >/dev/null 2>&1; then
     return
@@ -80,6 +113,7 @@ main() {
     echo "Stopping existing stack (stop.sh)..."
     "$ROOT/stop.sh" || true
   fi
+  force_free_port_if_anvil
   start_anvil
   deploy_contracts
   start_stack
