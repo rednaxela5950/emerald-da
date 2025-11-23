@@ -19,7 +19,8 @@ function loadArtifact(name) {
 }
 
 async function main() {
-  const rpcUrl = process.env.RPC_URL || "http://host.docker.internal:8545";
+  const rpcUrl = process.env.RPC_URL || "http://127.0.0.1:8545";
+  const configRpcUrl = process.env.CONFIG_RPC_URL || process.env.RPC_URL_CONFIG || rpcUrl;
   const privateKey =
     process.env.PRIVATE_KEY ||
     // anvil default first account
@@ -72,7 +73,7 @@ async function main() {
   await tx.wait();
 
   const deployed = {
-    rpcUrl,
+    rpcUrl: configRpcUrl,
     registryAddress,
     adapterAddress,
     verifierAddress,
