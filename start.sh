@@ -8,6 +8,18 @@ HOST="${ANVIL_HOST:-0.0.0.0}"
 PORT="${ANVIL_PORT:-8545}"
 CHAIN_ID="${ANVIL_CHAIN_ID:-31337}"
 
+ensure_port_free() {
+  if ! command -v lsof >/dev/null 2>&1; then
+    return
+  fi
+  local listeners
+  listeners=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null | sed -n 's/^p//p' | tr '\n' ' ' | xargs)
+  if [[ -n "${listeners:-}" ]]; then
+    echo "Port $PORT is already in use by pids: $listeners. Stop them or set ANVIL_PORT."
+    exit 1
+  fi
+}
+
 start_anvil() {
   if [[ -f "$PID_FILE" ]]; then
     local pid
@@ -19,9 +31,15 @@ start_anvil() {
     rm -f "$PID_FILE"
   fi
 
+  ensure_port_free
   echo "Starting anvil on $HOST:$PORT (chainId=$CHAIN_ID)..."
   nohup anvil --host "$HOST" --port "$PORT" --chain-id "$CHAIN_ID" >"$LOG_FILE" 2>&1 &
   echo $! >"$PID_FILE"
+  sleep 0.2
+  if ! kill -0 "$(cat "$PID_FILE")" >/dev/null 2>&1; then
+    echo "anvil failed to start; see $LOG_FILE"
+    exit 1
+  fi
 
   echo -n "Waiting for anvil RPC"
   for _ in {1..50}; do
