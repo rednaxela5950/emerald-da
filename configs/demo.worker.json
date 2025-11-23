@@ -1,0 +1,8 @@
+{
+  "profile": "demo",
+  "dataServiceUrl": "http://localhost:4000",
+  "rpcUrl": "",
+  "registryAddress": "",
+  "adapterAddress": "",
+  "verifierAddress": ""
+}

@@ -1,11 +1,20 @@
 import { createHash } from "crypto";
-import { Contract, JsonRpcProvider, Wallet, ethers } from "ethers";
+import fs from "fs";
+import path from "path";
+import { Contract, JsonRpcProvider, Wallet } from "ethers";
 
-const DEFAULT_DATA_URL = process.env.DATA_SERVICE_URL || "http://localhost:4000";
-const RPC_URL = process.env.RPC_URL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const REGISTRY_ADDRESS = process.env.REGISTRY_ADDRESS;
-const ADAPTER_ADDRESS = process.env.ADAPTER_ADDRESS;
+let DATA_SERVICE_URL = process.env.DATA_SERVICE_URL || "http://localhost:4000";
+
+type WorkerConfig = {
+  profile: string;
+  dataServiceUrl: string;
+  rpcUrl?: string;
+  registryAddress?: string;
+  adapterAddress?: string;
+  verifierAddress?: string;
+};
+
+const CONFIG_PATH = process.env.CONFIG_PATH || "configs/demo.worker.json";
 
 const REGISTRY_ABI = [
   "event PostCreated(bytes32 indexed postId, bytes32 indexed cidHash, bytes32 indexed kzgCommit, address creator)"
@@ -19,7 +28,7 @@ export type BlobResult =
   | { ok: true; cidHash: string; content: Uint8Array }
   | { ok: false; error: string };
 
-async function fetchBlob(cidHash: string, baseUrl = DEFAULT_DATA_URL): Promise<BlobResult> {
+async function fetchBlob(cidHash: string, baseUrl = DATA_SERVICE_URL): Promise<BlobResult> {
   const res = await fetch(`${baseUrl}/blob/${cidHash}`);
   if (!res.ok) {
     return { ok: false, error: `fetch failed: ${res.status}` };
@@ -55,15 +64,32 @@ async function handleCustodyChallenge(adapter: Contract, postId: string, operato
   }
 }
 
-async function startOnChainListeners() {
-  if (!RPC_URL || !REGISTRY_ADDRESS || !ADAPTER_ADDRESS) {
-    console.log("on-chain listener disabled (RPC_URL, REGISTRY_ADDRESS, ADAPTER_ADDRESS not all set)");
+function loadConfig(): WorkerConfig {
+  const resolved = path.resolve(process.cwd(), CONFIG_PATH);
+  const raw = fs.readFileSync(resolved, "utf8");
+  const parsed = JSON.parse(raw) as WorkerConfig;
+  return {
+    ...parsed,
+    dataServiceUrl: process.env.DATA_SERVICE_URL || parsed.dataServiceUrl,
+    rpcUrl: process.env.RPC_URL || parsed.rpcUrl,
+    registryAddress: process.env.REGISTRY_ADDRESS || parsed.registryAddress,
+    adapterAddress: process.env.ADAPTER_ADDRESS || parsed.adapterAddress,
+    verifierAddress: process.env.VERIFIER_ADDRESS || parsed.verifierAddress
+  };
+}
+
+async function startOnChainListeners(config: WorkerConfig) {
+  if (!config.rpcUrl || !config.registryAddress || !config.adapterAddress) {
+    console.log(
+      "on-chain listener disabled (rpcUrl, registryAddress, adapterAddress not all set in config/env)"
+    );
     return;
   }
-  const provider = new JsonRpcProvider(RPC_URL);
-  const wallet = PRIVATE_KEY ? new Wallet(PRIVATE_KEY, provider) : null;
-  const registry = new Contract(REGISTRY_ADDRESS, REGISTRY_ABI, provider);
-  const adapter = new Contract(ADAPTER_ADDRESS, ADAPTER_ABI, wallet || provider);
+  const provider = new JsonRpcProvider(config.rpcUrl);
+  const privateKey = process.env.PRIVATE_KEY || "";
+  const wallet = privateKey ? new Wallet(privateKey, provider) : null;
+  const registry = new Contract(config.registryAddress, REGISTRY_ABI, provider);
+  const adapter = new Contract(config.adapterAddress, ADAPTER_ABI, wallet || provider);
 
   registry.on("PostCreated", async (postId: string, cidHash: string) => {
     await handlePostCreated(postId, cidHash);
@@ -81,9 +107,13 @@ async function startOnChainListeners() {
 }
 
 export async function main() {
+  const config = loadConfig();
+  const dataServiceUrl = config.dataServiceUrl || DATA_SERVICE_URL;
+  DATA_SERVICE_URL = dataServiceUrl;
   console.log("emerald-da-worker starting");
-  console.log(`configured data service: ${DEFAULT_DATA_URL}`);
-  await startOnChainListeners();
+  console.log(`profile: ${config.profile}`);
+  console.log(`configured data service: ${dataServiceUrl}`);
+  await startOnChainListeners(config);
 }
 
 if (require.main === module) {
