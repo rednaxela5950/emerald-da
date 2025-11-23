@@ -45,6 +45,7 @@ Optional on-chain listeners for the worker (no-op unless set):
 - `PRIVATE_KEY` — wallet for custody proofs
 - `REGISTRY_ADDRESS` — EmeraldPostRegistry address
 - `ADAPTER_ADDRESS` — EmeraldDaAdapter address
+- `VERIFIER_ADDRESS` — (optional) alternate KZG verifier; defaults to mock/precompile choice on deploy
 
 ## Demo script (manual)
 1) Start data service and frontend as above. (Worker optional.)

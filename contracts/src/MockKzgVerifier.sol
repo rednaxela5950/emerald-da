@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-contract MockKzgVerifier {
+import {IKzgVerifier} from "./IKzgVerifier.sol";
+
+contract MockKzgVerifier is IKzgVerifier {
     bool public shouldVerify = true;
 
     event VerificationConfigured(bool shouldVerify);
@@ -11,7 +13,7 @@ contract MockKzgVerifier {
         emit VerificationConfigured(value);
     }
 
-    function verifyKzgOpening(bytes32 commitment, uint256 x, bytes calldata y, bytes calldata proof)
+    function verifyKzgOpening(bytes calldata commitment, uint256 x, bytes calldata y, bytes calldata proof)
         external
         view
         returns (bool)
