@@ -1,6 +1,6 @@
 # KZG Integration Plan
 
-Goal: replace the mock KZG verifier with a real implementation and wire custody proofs end-to-end.
+Goal: replace the mock KZG verifier with a real implementation and wire custody proofs end-to-end. Current code allows swapping verifiers (mock vs. precompile/external) via the adapter.
 
 ## Objectives
 - Integrate a production-ready KZG verifier contract (trusted setup + pairing checks).
@@ -16,10 +16,10 @@ Goal: replace the mock KZG verifier with a real implementation and wire custody 
    - Confirm trusted setup parameters and CRS distribution; document verification gas costs.
 
 2) **Contract integration**
-   - Replace `MockKzgVerifier` with the chosen verifier contract or linkable library.
-   - Update `EmeraldDaAdapter` to store commitments in a format compatible with the verifier (likely `[2]uint256` or G1/G2 points).
-   - Define `submitCustodyProof(bytes32 postId, uint256 x, bytes y, bytes pi)` calldata shape to match verifier expectations (may split into uint256 arrays for affine coords).
-   - Add revert paths for malformed proofs and mismatched commitment lengths.
+   - Replace `MockKzgVerifier` with the chosen verifier contract or linkable library. (Done: adapter now depends on `IKzgVerifier` with swappable implementations.)
+   - Update `EmeraldDaAdapter` to store commitments in a format compatible with the verifier (likely `[2]uint256` or G1/G2 points). (Pending: currently `bytes32`; adapt when real commitments are used.)
+   - Define `submitCustodyProof(bytes32 postId, uint256 x, bytes y, bytes pi)` calldata shape to match verifier expectations (may split into uint256 arrays for affine coords). (Pending final shape for real verifier.)
+   - Add revert paths for malformed proofs and mismatched commitment lengths. (Pending real verifier semantics.)
 
 3) **Custody flow updates**
    - Derive challenge points deterministically (e.g., hash of `postId` + operator) mapped into the field for x.
@@ -43,6 +43,12 @@ Goal: replace the mock KZG verifier with a real implementation and wire custody 
    - Document trusted setup assumptions and how operators obtain/verify the CRS.
    - Add gas benchmarking for verification to ensure feasibility within challenge flow.
    - Consider circuit/semaphore if batching or aggregation is needed (out of scope for first pass).
+
+## Current status
+- `IKzgVerifier` interface added; `EmeraldDaAdapter` can switch verifier via `setVerifier`.
+- `MockKzgVerifier` implements the interface for local/testing.
+- `PrecompileKzgVerifier` added to forward to a chain-specific verifier/precompile (defaults to EIP-4844 address 0x0A).
+- Commitment storage still `bytes32`; update to G1 bytes when moving to a concrete implementation.
 
 ## Dependencies / open questions
 - Availability of a battle-tested KZG verifier for the target chain (Emerald) and its precompile support.

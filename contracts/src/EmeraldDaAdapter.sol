@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {PostStatus, Post} from "./PostTypes.sol";
-import {MockKzgVerifier} from "./MockKzgVerifier.sol";
+import {IKzgVerifier} from "./IKzgVerifier.sol";
 
 interface IEmeraldPostRegistry {
     function setStatusFromDa(bytes32 postId, PostStatus newStatus) external;
@@ -31,7 +31,7 @@ contract EmeraldDaAdapter {
     address public owner;
     address public relay;
     IEmeraldPostRegistry public immutable registry;
-    MockKzgVerifier public immutable verifier;
+    IKzgVerifier public verifier;
     mapping(bytes32 => Phase1State) private phase1State;
     mapping(bytes32 => CustodyChallenge[]) private challenges;
 
@@ -60,7 +60,7 @@ contract EmeraldDaAdapter {
         owner = msg.sender;
         relay = msg.sender;
         registry = IEmeraldPostRegistry(registryAddress);
-        verifier = MockKzgVerifier(verifierAddress);
+        verifier = IKzgVerifier(verifierAddress);
     }
 
     modifier onlyOwner() {
@@ -77,6 +77,11 @@ contract EmeraldDaAdapter {
         address previous = relay;
         relay = newRelay;
         emit RelayUpdated(previous, newRelay);
+    }
+
+    function setVerifier(address newVerifier) external onlyOwner {
+        if (newVerifier == address(0)) revert InvalidPost();
+        verifier = IKzgVerifier(newVerifier);
     }
 
     function handleDaAttestation(
@@ -137,7 +142,7 @@ contract EmeraldDaAdapter {
         if (entry.responded) revert AlreadyResponded();
 
         Post memory post = registry.getPost(postId);
-        bool ok = verifier.verifyKzgOpening(post.kzgCommit, x, y, pi);
+        bool ok = verifier.verifyKzgOpening(abi.encodePacked(post.kzgCommit), x, y, pi);
         entry.responded = true;
         entry.success = ok;
         emit CustodyProofSubmitted(postId, operator, ok);
