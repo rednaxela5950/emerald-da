@@ -3,6 +3,9 @@ import { getActiveProfile } from "./config/profiles";
 
 const { key: PROFILE, config: PROFILE_CONFIG } = getActiveProfile();
 const DATA_SERVICE_URL = PROFILE_CONFIG.dataServiceUrl;
+const RELAY_ENDPOINT = PROFILE_CONFIG.relayEndpoint;
+const RELAY_KEY_TAG = PROFILE_CONFIG.relayKeyTag;
+const RELAY_REQUIRED_EPOCH = PROFILE_CONFIG.relayRequiredEpoch;
 
 type PostStatus =
   | "Pending"
@@ -49,6 +52,22 @@ export default function App() {
       "Upload a blob to the dummy data network, get a cidHash, and simulate how Emerald sees its DA state.",
     []
   );
+
+  const relayStatus = useMemo(() => {
+    const endpoint = RELAY_ENDPOINT?.trim();
+    const keyTag = RELAY_KEY_TAG;
+    const requiredEpoch = RELAY_REQUIRED_EPOCH?.trim();
+    const enabled = Boolean(endpoint && keyTag !== undefined && keyTag !== null);
+    const endpointLabel = endpoint || "not set";
+    const keyTagLabel = keyTag !== undefined && keyTag !== null ? keyTag.toString() : "not set";
+    const requiredEpochLabel = requiredEpoch || "";
+    const summary = enabled
+      ? `Requests DA signatures from ${endpointLabel} with keyTag=${keyTagLabel}${
+          requiredEpochLabel ? ` (epoch hint ${requiredEpochLabel})` : ""
+        }.`
+      : "Relay SDK step is skipped until the worker is configured.";
+    return { enabled, endpointLabel, keyTagLabel, requiredEpochLabel, summary };
+  }, []);
 
   async function handleUpload() {
     if (!selectedFile) {
@@ -97,12 +116,61 @@ export default function App() {
           <p className="eyebrow">Emerald + Symbiotic Relay</p>
           <h1>Data availability demo</h1>
           <p className="subhead">{heroSubtitle}</p>
-          <div className="pill">Profile: {PROFILE.toUpperCase()}</div>
-          <div className="pill">Data service: {DATA_SERVICE_URL}</div>
+          <div className="pill-row">
+            <div className="pill">Profile: {PROFILE.toUpperCase()}</div>
+            <div className="pill">Data service: {DATA_SERVICE_URL}</div>
+            <div className={`pill ${relayStatus.enabled ? "pill-on" : "pill-off"}`}>
+              Relay SDK: {relayStatus.enabled ? "Enabled" : "Disabled"} · {relayStatus.endpointLabel}
+              {relayStatus.enabled ? ` (keyTag=${relayStatus.keyTagLabel})` : ""}
+            </div>
+          </div>
         </div>
       </header>
 
       <main className="grid">
+        <section className="card relay-card">
+          <div className="card-head">
+            <h2>How the worker uses the Relay</h2>
+            <p>Live view of the Relay SDK config baked into this build.</p>
+          </div>
+          <div className={`relay-banner ${relayStatus.enabled ? "on" : "off"}`}>
+            <div className="relay-dot" aria-hidden />
+            <div>
+              <p className="label">{relayStatus.enabled ? "Relay enabled" : "Relay disabled"}</p>
+              <p className="mono small">endpoint: {relayStatus.endpointLabel}</p>
+              <p className="mono small">keyTag: {relayStatus.keyTagLabel}</p>
+              {relayStatus.enabled ? (
+                <p className="mono small">
+                  requiredEpoch: {relayStatus.requiredEpochLabel || "not set (uses latest)"}
+                </p>
+              ) : (
+                <p className="hint">Set VITE_RELAY_ENDPOINT + VITE_RELAY_KEY_TAG, then rebuild.</p>
+              )}
+            </div>
+          </div>
+          <ul className="relay-steps">
+            <li>
+              <span className="step-dot" aria-hidden />
+              <div>Worker hears `PostCreated` events from the Emerald registry (when on-chain listeners are set).</div>
+            </li>
+            <li>
+              <span className="step-dot" aria-hidden />
+              <div>It fetches the blob from the data service and re-hashes it to confirm the cidHash matches.</div>
+            </li>
+            <li>
+              <span className="step-dot" aria-hidden />
+              <div>
+                Relay SDK step: {relayStatus.summary} It calls `requestDaSignature(postId, cidHash, kzgCommit)` and
+                logs the returned `requestId` and epoch.
+              </div>
+            </li>
+            <li>
+              <span className="step-dot" aria-hidden />
+              <div>Then it tries `tryFetchAggregationProof(requestId)` to pull the aggregated proof once available.</div>
+            </li>
+          </ul>
+        </section>
+
         <section className="card">
           <div className="card-head">
             <h2>1) Upload a blob</h2>

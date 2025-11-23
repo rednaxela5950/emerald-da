@@ -2,29 +2,41 @@ version: "3.9"
 
 services:
   data-service:
-    build: ./packages/dummy-data-service
+    build:
+      context: .
+      dockerfile: packages/dummy-data-service/Dockerfile
     ports:
-      - "4000:4000"
-    profiles: ["demo", "prod"]
+      - "${DATA_SERVICE_PORT:-4400}:4000"
 
-  worker-demo:
+  worker:
     build:
       context: .
-      dockerfile: Dockerfile.worker
+      dockerfile: packages/emerald-da-worker/Dockerfile
     environment:
-      - CONFIG_PATH=configs/demo.worker.json
-      - DATA_SERVICE_URL=http://data-service:4000
+      DATA_SERVICE_URL: http://data-service:4000
+      CONFIG_PATH: /app/configs/demo.worker.json
+      RELAY_ENDPOINT: ${RELAY_ENDPOINT:-http://host.docker.internal:8080}
+      RELAY_KEY_TAG: ${RELAY_KEY_TAG:-1}
+      RELAY_REQUIRED_EPOCH: ${RELAY_REQUIRED_EPOCH:-}
     depends_on:
       - data-service
-    profiles: ["demo"]
 
-  worker-prod:
+  frontend:
     build:
       context: .
-      dockerfile: Dockerfile.worker
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        VITE_DATA_SERVICE_URL: ${VITE_DATA_SERVICE_URL:-http://localhost:4000}
+        VITE_PROFILE: ${VITE_PROFILE:-demo}
+        VITE_RELAY_ENDPOINT: ${VITE_RELAY_ENDPOINT:-http://host.docker.internal:8080}
+        VITE_RELAY_KEY_TAG: ${VITE_RELAY_KEY_TAG:-1}
+        VITE_RELAY_REQUIRED_EPOCH: ${VITE_RELAY_REQUIRED_EPOCH:-}
     environment:
-      - CONFIG_PATH=configs/prod.worker.json
-      - DATA_SERVICE_URL=http://data-service:4000
+      VITE_DATA_SERVICE_URL: ${VITE_DATA_SERVICE_URL:-http://localhost:4000}
+      VITE_RELAY_ENDPOINT: ${VITE_RELAY_ENDPOINT:-http://host.docker.internal:8080}
+      VITE_RELAY_KEY_TAG: ${VITE_RELAY_KEY_TAG:-1}
+      VITE_RELAY_REQUIRED_EPOCH: ${VITE_RELAY_REQUIRED_EPOCH:-}
+    ports:
+      - "${FRONTEND_PORT:-5174}:5173"
     depends_on:
       - data-service
-    profiles: ["prod"]
