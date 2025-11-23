@@ -58,6 +58,10 @@ start_stack() {
 
 main() {
   cd "$ROOT"
+  if [[ -x "$ROOT/stop.sh" ]]; then
+    echo "Stopping existing stack (stop.sh)..."
+    "$ROOT/stop.sh" || true
+  fi
   start_anvil
   deploy_contracts
   start_stack
