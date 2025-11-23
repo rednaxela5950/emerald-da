@@ -3,14 +3,13 @@ WORKDIR /app
 
 # Install workspace deps
 COPY package.json package-lock.json tsconfig.base.json ./
-COPY packages/dummy-data-service/package.json packages/dummy-data-service/package.json
 COPY packages/emerald-da-worker/package.json packages/emerald-da-worker/package.json
+COPY packages/dummy-data-service/package.json packages/dummy-data-service/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
 RUN npm ci --include-workspace-root --ignore-scripts
 
-# Build the data service
+# Build the worker
 COPY . .
-RUN npm run build --workspace=dummy-data-service
+RUN npm run build --workspace=emerald-da-worker
 
-EXPOSE 4000
-CMD ["node", "packages/dummy-data-service/dist/server.js"]
+CMD ["node", "packages/emerald-da-worker/dist/index.js"]

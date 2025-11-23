@@ -5,7 +5,7 @@ Monorepo exploring a two-phase data availability flow on Emerald: Phase 1 attest
 ## Components
 - `contracts/` — Foundry contracts: post registry, DA adapter, mock KZG verifier, and tests.
 - `packages/dummy-data-service/` — Express in-memory blob store (sha256-based `cidHash`).
-- `packages/emerald-da-worker/` — Worker scaffold to fetch blobs, verify hashes, and listen for on-chain events (optional).
+- `packages/emerald-da-worker/` — Worker scaffold to fetch blobs, verify hashes, listen for on-chain events, and (optionally) call the Symbiotic Relay SDK for DA attestations.
 - `apps/frontend/` — Vite + React UI to upload blobs to the data service and simulate post status transitions.
 - `docs/` — Plan and step specs.
 
@@ -28,7 +28,21 @@ npm run test:contracts
 ```
 
 ## Run the stack locally
-In separate terminals:
+### Option A: Docker Compose (single command)
+```bash
+docker compose up --build
+```
+Services (host ports can be overridden with env):
+- data-service → http://localhost:${DATA_SERVICE_PORT:-4400} (container listens on 4000)
+- worker → consumes the data-service; configure Relay via env (`RELAY_ENDPOINT`, `RELAY_KEY_TAG`, `RELAY_REQUIRED_EPOCH`).
+- frontend → http://localhost:${FRONTEND_PORT:-5174} (built with `VITE_DATA_SERVICE_URL`; override via env before `docker compose up`).
+
+Example Relay-enabled worker:
+```bash
+RELAY_ENDPOINT=http://relay-node:8080 RELAY_KEY_TAG=1 docker compose up --build worker
+```
+
+### Option B: Manual terminals
 ```bash
 # 1) Dummy data service (default http://localhost:4000)
 npm run start:data-service
@@ -47,6 +61,10 @@ Optional on-chain listeners for the worker (no-op unless set):
 - `ADAPTER_ADDRESS` — EmeraldDaAdapter address
 - `VERIFIER_ADDRESS` — (optional) alternate KZG verifier; defaults to mock/precompile choice on deploy
 - `CONFIG_PATH` — (worker) pick config file, defaults to `configs/demo.worker.json`
+- Relay SDK (optional; uses `@symbioticfi/relay-client-ts`):
+  - `RELAY_ENDPOINT` — gRPC base URL for a Symbiotic Relay node (e.g. `http://localhost:8080`)
+  - `RELAY_KEY_TAG` — Relay key tag to sign DA attestations (number, e.g. `1`)
+  - `RELAY_REQUIRED_EPOCH` — (optional) epoch hint for signing
 
 ## Demo walkthrough (manual UI)
 Once the data service + frontend are running (worker optional unless you're wiring on-chain listeners), walk through:

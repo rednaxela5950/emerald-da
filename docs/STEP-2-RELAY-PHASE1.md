@@ -32,3 +32,4 @@ Accept a Relay-provided DA attestation for a post, validate inputs, apply a simp
 - Implemented `handleDaAttestation` validating post data, stake sanity, and threshold before storing Phase 1 state and updating the registry.
 - Shared internal recording logic used by both Relay and owner pathways.
 - Added tests for passing attestation, insufficient yesStake (fail), mismatched data (revert), and relay-only enforcement.
+- Off-chain worker now calls the Symbiotic Relay SDK (gRPC) to request a DA attestation signature and logs the resulting request/aggregation proof when configured.

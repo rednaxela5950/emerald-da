@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log*
+dist
+.git
+.gitignore
+coverage
+*.tgz
+contracts/out
+contracts/cache
+frontend/node_modules
+packages/*/dist
+apps/*/dist
+tmp
+.DS_Store
