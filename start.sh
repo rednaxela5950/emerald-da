@@ -45,7 +45,8 @@ deploy_contracts() {
   forge build --root "$ROOT/contracts"
 
   echo "Deploying registry/adapter/verifier to local chain..."
-  RPC_URL="${RPC_URL:-http://host.docker.internal:$PORT}" \
+  RPC_URL="${RPC_URL:-http://127.0.0.1:$PORT}" \
+  CONFIG_RPC_URL="${CONFIG_RPC_URL:-http://host.docker.internal:$PORT}" \
   PRIVATE_KEY="${PRIVATE_KEY:-}" \
     npm run deploy:local-chain --silent
 }
