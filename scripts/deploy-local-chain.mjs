@@ -2,7 +2,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { ethers } from "ethers";
+import { ethers, NonceManager } from "ethers";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +28,7 @@ async function main() {
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
   const wallet = new ethers.Wallet(privateKey, provider);
+  const signer = new NonceManager(wallet);
   console.log(`[deploy] using ${wallet.address} on ${rpcUrl}`);
 
   const registryArtifact = loadArtifact("EmeraldPostRegistry");
@@ -37,17 +38,17 @@ async function main() {
   const Registry = new ethers.ContractFactory(
     registryArtifact.abi,
     registryArtifact.bytecode.object,
-    wallet
+    signer
   );
   const Verifier = new ethers.ContractFactory(
     verifierArtifact.abi,
     verifierArtifact.bytecode.object,
-    wallet
+    signer
   );
   const Adapter = new ethers.ContractFactory(
     adapterArtifact.abi,
     adapterArtifact.bytecode.object,
-    wallet
+    signer
   );
 
   console.log("[deploy] deploying EmeraldPostRegistry (adapter=zero for now)...");
