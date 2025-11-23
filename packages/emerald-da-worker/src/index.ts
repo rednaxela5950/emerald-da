@@ -2,6 +2,8 @@ import { createHash } from "crypto";
 import fs from "fs";
 import path from "path";
 import { Contract, JsonRpcProvider, Wallet } from "ethers";
+import { fileURLToPath } from "url";
+import { SymbioticRelaySdk } from "./relay.js";
 
 let DATA_SERVICE_URL = process.env.DATA_SERVICE_URL || "http://localhost:4000";
 
@@ -12,6 +14,9 @@ type WorkerConfig = {
   registryAddress?: string;
   adapterAddress?: string;
   verifierAddress?: string;
+  relayEndpoint?: string;
+  relayKeyTag?: number;
+  relayRequiredEpoch?: bigint;
 };
 
 const CONFIG_PATH = process.env.CONFIG_PATH || "configs/demo.worker.json";
@@ -42,8 +47,13 @@ export async function verifyBlob(cidHash: string, content: Uint8Array): Promise<
   return cidHash.toLowerCase() === hex.toLowerCase();
 }
 
-async function handlePostCreated(postId: string, cidHash: string) {
-  console.log(`[event] PostCreated ${postId} cid ${cidHash}`);
+async function handlePostCreated(
+  postId: string,
+  cidHash: string,
+  kzgCommit: string,
+  relay?: SymbioticRelaySdk
+) {
+  console.log(`[event] PostCreated ${postId} cid ${cidHash} kzg ${kzgCommit}`);
   const res = await fetchBlob(cidHash);
   if (!res.ok) {
     console.warn(`[event] failed to fetch blob ${cidHash}: ${res.error}`);
@@ -51,7 +61,23 @@ async function handlePostCreated(postId: string, cidHash: string) {
   }
   const valid = await verifyBlob(res.cidHash, res.content);
   console.log(`[event] blob verification for ${cidHash}: ${valid ? "ok" : "mismatch"}`);
-  // TODO: compute attestation payload and submit to relay/adapter once available.
+
+  if (relay) {
+    try {
+      const signature = await relay.requestDaSignature(postId, cidHash, kzgCommit);
+      console.log(
+        `[relay] requested signature requestId=${signature.requestId} epoch=${signature.epoch} hash=${signature.messageHash}`
+      );
+      const proof = await relay.tryFetchAggregationProof(signature.requestId);
+      if (proof) {
+        console.log(`[relay] aggregation proof received (${proof.proof.length} bytes)`);
+      } else {
+        console.log("[relay] aggregation proof not ready yet (non-blocking)");
+      }
+    } catch (err) {
+      console.warn(`[relay] failed to call Symbiotic Relay SDK: ${(err as Error).message}`);
+    }
+  }
 }
 
 async function handleCustodyChallenge(adapter: Contract, postId: string, operator: string) {
@@ -74,11 +100,52 @@ function loadConfig(): WorkerConfig {
     rpcUrl: process.env.RPC_URL || parsed.rpcUrl,
     registryAddress: process.env.REGISTRY_ADDRESS || parsed.registryAddress,
     adapterAddress: process.env.ADAPTER_ADDRESS || parsed.adapterAddress,
-    verifierAddress: process.env.VERIFIER_ADDRESS || parsed.verifierAddress
+    verifierAddress: process.env.VERIFIER_ADDRESS || parsed.verifierAddress,
+    relayEndpoint: process.env.RELAY_ENDPOINT || parsed.relayEndpoint,
+    relayKeyTag: asNumber(preferEnvOrConfig(process.env.RELAY_KEY_TAG, parsed.relayKeyTag)),
+    relayRequiredEpoch: asBigInt(preferEnvOrConfig(process.env.RELAY_REQUIRED_EPOCH, parsed.relayRequiredEpoch))
   };
 }
 
-async function startOnChainListeners(config: WorkerConfig) {
+function asNumber(value?: string | number): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (typeof value === "string" && value.trim() === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function asBigInt(value?: string | number | bigint): bigint | undefined {
+  if (value === undefined || value === null) return undefined;
+  try {
+    if (typeof value === "bigint") return value;
+    if (typeof value === "number") return BigInt(value);
+    if (typeof value === "string" && value.trim() === "") return undefined;
+    return BigInt(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function preferEnvOrConfig<T extends string | number | bigint>(
+  envValue: string | undefined,
+  configValue: T | undefined
+): string | T | undefined {
+  if (envValue === undefined || envValue === null) return configValue;
+  if (envValue.trim() === "") return configValue;
+  return envValue;
+}
+
+function createRelayClient(config: WorkerConfig): SymbioticRelaySdk | undefined {
+  if (!config.relayEndpoint || config.relayKeyTag === undefined) return undefined;
+  return new SymbioticRelaySdk({
+    endpoint: config.relayEndpoint,
+    keyTag: config.relayKeyTag,
+    requiredEpoch: config.relayRequiredEpoch
+  });
+}
+
+async function startOnChainListeners(config: WorkerConfig, relay?: SymbioticRelaySdk) {
   if (!config.rpcUrl || !config.registryAddress || !config.adapterAddress) {
     console.log(
       "on-chain listener disabled (rpcUrl, registryAddress, adapterAddress not all set in config/env)"
@@ -91,8 +158,8 @@ async function startOnChainListeners(config: WorkerConfig) {
   const registry = new Contract(config.registryAddress, REGISTRY_ABI, provider);
   const adapter = new Contract(config.adapterAddress, ADAPTER_ABI, wallet || provider);
 
-  registry.on("PostCreated", async (postId: string, cidHash: string) => {
-    await handlePostCreated(postId, cidHash);
+  registry.on("PostCreated", async (postId: string, cidHash: string, kzgCommit: string) => {
+    await handlePostCreated(postId, cidHash, kzgCommit, relay);
   });
 
   adapter.on("CustodyChallengeStarted", async (postId: string, operator: string) => {
@@ -110,13 +177,19 @@ export async function main() {
   const config = loadConfig();
   const dataServiceUrl = config.dataServiceUrl || DATA_SERVICE_URL;
   DATA_SERVICE_URL = dataServiceUrl;
+  const relay = createRelayClient(config);
   console.log("emerald-da-worker starting");
   console.log(`profile: ${config.profile}`);
   console.log(`configured data service: ${dataServiceUrl}`);
-  await startOnChainListeners(config);
+  if (relay) {
+    console.log(`relay sdk: ${config.relayEndpoint} (keyTag=${config.relayKeyTag})`);
+  } else {
+    console.log("relay sdk: disabled (set RELAY_ENDPOINT and RELAY_KEY_TAG to enable)");
+  }
+  await startOnChainListeners(config, relay);
 }
 
-if (require.main === module) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

@@ -13,7 +13,9 @@
     "build:data-service": "npm run build --workspace=dummy-data-service",
     "start:data-service": "npm run start --workspace=dummy-data-service",
     "dev:frontend": "npm run dev --workspace=emerald-da-frontend",
-    "build:frontend": "npm run build --workspace=emerald-da-frontend"
+    "build:frontend": "npm run build --workspace=emerald-da-frontend",
+    "test:integration": "npm run build:data-service && npm run build:worker && node --test integration/*.test.mjs",
+    "deploy:local-chain": "node scripts/deploy-local-chain.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
