@@ -13,6 +13,8 @@ pnpm-debug.log*
 dist/
 coverage/
 .vite/
+apps/*/dist
+packages/*/dist
 
 # Environment
 .env*
@@ -25,6 +27,10 @@ coverage/
 
 # OS
 .DS_Store
+.anvil.pid
+configs/local.chain.json
+configs/demo.worker.json
+configs/prod.worker.json
 
 # Foundry
 contracts/out/
