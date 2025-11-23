@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  data-service:
+    build: ./packages/dummy-data-service
+    ports:
+      - "4000:4000"
+    profiles: ["demo", "prod"]
+
+  worker-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - CONFIG_PATH=configs/demo.worker.json
+      - DATA_SERVICE_URL=http://data-service:4000
+    depends_on:
+      - data-service
+    profiles: ["demo"]
+
+  worker-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - CONFIG_PATH=configs/prod.worker.json
+      - DATA_SERVICE_URL=http://data-service:4000
+    depends_on:
+      - data-service
+    profiles: ["prod"]

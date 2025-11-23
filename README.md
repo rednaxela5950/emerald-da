@@ -46,6 +46,7 @@ Optional on-chain listeners for the worker (no-op unless set):
 - `REGISTRY_ADDRESS` — EmeraldPostRegistry address
 - `ADAPTER_ADDRESS` — EmeraldDaAdapter address
 - `VERIFIER_ADDRESS` — (optional) alternate KZG verifier; defaults to mock/precompile choice on deploy
+- `CONFIG_PATH` — (worker) pick config file, defaults to `configs/demo.worker.json`
 
 ## Demo script (manual)
 1) Start data service and frontend as above. (Worker optional.)
@@ -56,3 +57,14 @@ Optional on-chain listeners for the worker (no-op unless set):
 4) Observe badge colors change; blob hash matches the data service (`sha256` placeholder).
 
 Contract-level tests already cover Phase 1 and custody logic with mocks; see `contracts/test/`.
+
+## Profiles: demo vs prod (local)
+- Frontend: set `VITE_PROFILE=demo|prod` (defaults to `demo`). `VITE_DATA_SERVICE_URL_PROD` can point prod builds to a different data endpoint.
+- Worker: set `CONFIG_PATH=configs/demo.worker.json` (default) or `configs/prod.worker.json`. Env vars override values in the file.
+
+## Docker (optional, local only)
+Run the demo data service + worker in containers:
+```bash
+docker compose --profile demo up --build
+```
+This starts the data service on `localhost:4000` and a demo worker pointing at it (no chain listeners unless RPC/addresses are provided). Frontend still runs via `npm run dev:frontend` on the host.

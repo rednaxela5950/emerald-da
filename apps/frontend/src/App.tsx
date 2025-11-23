@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { getActiveProfile } from "./config/profiles";
 
-const DATA_SERVICE_URL = import.meta.env.VITE_DATA_SERVICE_URL || "http://localhost:4000";
+const { key: PROFILE, config: PROFILE_CONFIG } = getActiveProfile();
+const DATA_SERVICE_URL = PROFILE_CONFIG.dataServiceUrl;
 
 type PostStatus =
   | "Pending"
@@ -95,6 +97,7 @@ export default function App() {
           <p className="eyebrow">Emerald + Symbiotic Relay</p>
           <h1>Data availability demo</h1>
           <p className="subhead">{heroSubtitle}</p>
+          <div className="pill">Profile: {PROFILE.toUpperCase()}</div>
           <div className="pill">Data service: {DATA_SERVICE_URL}</div>
         </div>
       </header>
