@@ -70,7 +70,7 @@ async function main() {
   console.log(`[deploy] adapter @ ${adapterAddress}`);
 
   console.log("[deploy] setting registry.daAdapter -> adapter");
-  const tx = await registry.setDaAdapter(adapterAddress);
+  const tx = await registry.setDaAdapter(adapterAddress, { nonce: nonce++ });
   await tx.wait();
 
   const deployed = {
