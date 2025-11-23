@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   data-service:
     build:
@@ -26,16 +24,25 @@ services:
       context: .
       dockerfile: apps/frontend/Dockerfile
       args:
-        VITE_DATA_SERVICE_URL: ${VITE_DATA_SERVICE_URL:-http://localhost:4000}
+        VITE_DATA_SERVICE_URL: ${VITE_DATA_SERVICE_URL:-http://localhost:4400}
         VITE_PROFILE: ${VITE_PROFILE:-demo}
         VITE_RELAY_ENDPOINT: ${VITE_RELAY_ENDPOINT:-http://host.docker.internal:8080}
         VITE_RELAY_KEY_TAG: ${VITE_RELAY_KEY_TAG:-1}
         VITE_RELAY_REQUIRED_EPOCH: ${VITE_RELAY_REQUIRED_EPOCH:-}
+        VITE_RPC_URL: ${VITE_RPC_URL:-http://host.docker.internal:8545}
+        VITE_REGISTRY_ADDRESS: ${VITE_REGISTRY_ADDRESS:-}
+        VITE_ADAPTER_ADDRESS: ${VITE_ADAPTER_ADDRESS:-}
+        VITE_VERIFIER_ADDRESS: ${VITE_VERIFIER_ADDRESS:-}
+        VITE_DEV_PRIVATE_KEY: ${VITE_DEV_PRIVATE_KEY:-}
     environment:
-      VITE_DATA_SERVICE_URL: ${VITE_DATA_SERVICE_URL:-http://localhost:4000}
+      VITE_DATA_SERVICE_URL: ${VITE_DATA_SERVICE_URL:-http://localhost:4400}
       VITE_RELAY_ENDPOINT: ${VITE_RELAY_ENDPOINT:-http://host.docker.internal:8080}
       VITE_RELAY_KEY_TAG: ${VITE_RELAY_KEY_TAG:-1}
       VITE_RELAY_REQUIRED_EPOCH: ${VITE_RELAY_REQUIRED_EPOCH:-}
+      VITE_RPC_URL: ${VITE_RPC_URL:-http://host.docker.internal:8545}
+      VITE_REGISTRY_ADDRESS: ${VITE_REGISTRY_ADDRESS:-}
+      VITE_ADAPTER_ADDRESS: ${VITE_ADAPTER_ADDRESS:-}
+      VITE_VERIFIER_ADDRESS: ${VITE_VERIFIER_ADDRESS:-}
     ports:
       - "${FRONTEND_PORT:-5174}:5173"
     depends_on:

@@ -2,6 +2,15 @@ import express from "express";
 import crypto from "crypto";
 
 const app = express();
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 app.use(express.raw({ type: "application/octet-stream", limit: "10mb" }));
 
 const store = new Map<string, Buffer>();

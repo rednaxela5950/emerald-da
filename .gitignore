@@ -29,11 +29,14 @@ packages/*/dist
 .DS_Store
 .anvil.pid
 configs/local.chain.json
-configs/demo.worker.json
-configs/prod.worker.json
+
+# Git metadata
+.gitmodules
 
 # Foundry
 contracts/out/
 contracts/cache/
 contracts/lib/
 contracts/broadcast/
+contracts/foundry.lock
+foundry.lock

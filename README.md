@@ -35,7 +35,7 @@ docker compose up --build
 Services (host ports can be overridden with env):
 - data-service → http://localhost:${DATA_SERVICE_PORT:-4400} (container listens on 4000)
 - worker → consumes the data-service; configure Relay via env (`RELAY_ENDPOINT`, `RELAY_KEY_TAG`, `RELAY_REQUIRED_EPOCH`).
-- frontend → http://localhost:${FRONTEND_PORT:-5174} (built with `VITE_DATA_SERVICE_URL`; override via env before `docker compose up`).
+- frontend → http://localhost:${FRONTEND_PORT:-5174} (built against `http://data-service:4000` by default; override `VITE_DATA_SERVICE_URL` if you need it to hit a host port instead).
 
 Example Relay-enabled worker:
 ```bash
@@ -66,12 +66,37 @@ Optional on-chain listeners for the worker (no-op unless set):
   - `RELAY_KEY_TAG` — Relay key tag to sign DA attestations (number, e.g. `1`)
   - `RELAY_REQUIRED_EPOCH` — (optional) epoch hint for signing
 
+## Demo script (talk track)
+- Setup intro (10–15s): “Local Anvil chain, frontend at http://localhost:5174, data service at http://localhost:4400, registry/adapter deployed. Using Anvil dev key to sign.”
+- Why this is nice/unique (20–30s): “Two-phase DA flow: Phase 1 attestation, then custody challenges, all on-chain. Blob store hashes uploads to cidHash, anchors on-chain, adapter drives DA state. UI shows RPC/contract addresses baked into the build.”
+- Prove on-chain (30–45s):
+  - `cast block-number --rpc-url http://localhost:8545` → “Current block is X.”
+  - Tail logs: `tail -f .anvil.log | grep eth_sendRawTransaction`
+  - Point to UI pills: “RPC: http://localhost:8545, Registry: <addr>, Signer: dev key.”
+- Action: create a post (60–90s):
+  - Upload a file, click “Upload + create on-chain post.”
+  - Show block bump and tx in log.
+  - `cast logs --rpc-url http://localhost:8545 --address $(jq -r .registryAddress configs/local.chain.json) 'PostCreated(bytes32,bytes32,bytes32,address)' 'latest-5' latest`
+  - `cast call --rpc-url http://localhost:8545 $(jq -r .registryAddress configs/local.chain.json) 'postCount()(uint256)'`
+- Action: drive DA outcomes (45–60s):
+  - Click “Phase 1 pass (on-chain)” then “Finalize: Available (on-chain).”
+  - Show new tx hashes; rerun `cast block-number`.
+  - Optionally: `cast logs --rpc-url http://localhost:8545 --address $(jq -r .adapterAddress configs/local.chain.json) 'PostFinalized(bytes32,uint8)' 'latest-5' latest`
+- Reinforce uniqueness (15–20s): “Flow mirrors real DA: attestation → custody; can force Unavailable by making verifier fail. Repro: ./start.sh deploys, writes addresses, rebuilds UI so envs stay in sync.”
+- Sanity hook: “Break RPC/signer to see upload fail (proves chain dependency). For slower blocks: ANVIL_BLOCK_TIME=12 ./start.sh.”
+
+## Quick start (start.sh)
+Run `./start.sh` (requires `anvil`, Docker, and `forge` on PATH) to:
+- Stop any existing stack, kill lingering `anvil` on `ANVIL_PORT` (default 8545), start a fresh chain, and deploy registry/adapter/verifier.
+- Build and start the docker stack. Frontend is exposed on `http://localhost:${FRONTEND_PORT:-5174}` and points to the data service on `http://localhost:${DATA_SERVICE_PORT:-4400}` by default.
+- Anvil logs go to `.anvil.log`; PID recorded in `.anvil.pid`.
+
 ## Demo walkthrough (manual UI)
 Once the data service + frontend are running (worker optional unless you're wiring on-chain listeners), walk through:
-1) Visit `http://localhost:5173` and note the active profile + data service URL pills at the top.
+1) Visit `http://localhost:5173` (or `http://localhost:5174` when using Docker/start.sh) and note the active profile + data service URL pills at the top.
 2) Upload a blob:
    - Pick any file, click **Upload to data service**. The UI hashes it (sha256) into `cidHash`, pushes the raw bytes to `POST /blob`, and shows a success hint with the returned hash.
-   - A new card appears with the `cidHash`, a stubbed `kzgCommit` (derived from the hash), and the file name/size. You can `curl http://localhost:4000/blob/<cidHash>` to prove the blob is stored.
+   - A new card appears with the `cidHash`, a stubbed `kzgCommit` (derived from the hash), and the file name/size. You can `curl http://localhost:4000/blob/<cidHash>` (or `http://localhost:4400/blob/<cidHash>` in Docker/start.sh) to prove the blob is stored.
 3) Phase 1 pass → custody success (happy path):
    - Click **Phase 1 pass** to mimic a Relay attestation; the badge turns green (`Phase1Passed`).
    - Click **Finalize: Available** to mimic custody proofs succeeding; badge shifts to `Available` (darker green).
@@ -92,4 +117,4 @@ Run the demo data service + worker in containers:
 ```bash
 docker compose --profile demo up --build
 ```
-This starts the data service on `localhost:4000` and a demo worker pointing at it (no chain listeners unless RPC/addresses are provided). Frontend still runs via `npm run dev:frontend` on the host.
+This starts the data service on `localhost:${DATA_SERVICE_PORT:-4400}` (4000 in-container), a demo worker pointing at it (no chain listeners unless RPC/addresses are provided), and the frontend exposed on `localhost:${FRONTEND_PORT:-5174}`. The containerized frontend defaults to `http://localhost:${DATA_SERVICE_PORT:-4400}`; override `VITE_DATA_SERVICE_URL` if you prefer a different endpoint.
