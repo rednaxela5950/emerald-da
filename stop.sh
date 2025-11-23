@@ -44,8 +44,9 @@ kill_anvil_on_port() {
     return
   fi
 
-  mapfile -t pids < <(lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null | sed -n 's/^p//p')
-  for pid in "${pids[@]:-}"; do
+  local pids
+  pids=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null | sed -n 's/^p//p')
+  for pid in $pids; do
     if [[ -z "$pid" ]]; then
       continue
     fi
