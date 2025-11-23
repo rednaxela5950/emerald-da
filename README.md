@@ -48,13 +48,20 @@ Optional on-chain listeners for the worker (no-op unless set):
 - `VERIFIER_ADDRESS` — (optional) alternate KZG verifier; defaults to mock/precompile choice on deploy
 - `CONFIG_PATH` — (worker) pick config file, defaults to `configs/demo.worker.json`
 
-## Demo script (manual)
-1) Start data service and frontend as above. (Worker optional.)
-2) In the UI, upload a file → see returned `cidHash` and placeholder `kzgCommit`.
-3) Simulate outcomes via the buttons on each post:
-   - Phase 1 pass/fail (Relay attestation analogue).
-   - Finalize as `Available` or `Unavailable` (custody success/failure analogue).
-4) Observe badge colors change; blob hash matches the data service (`sha256` placeholder).
+## Demo walkthrough (manual UI)
+Once the data service + frontend are running (worker optional unless you're wiring on-chain listeners), walk through:
+1) Visit `http://localhost:5173` and note the active profile + data service URL pills at the top.
+2) Upload a blob:
+   - Pick any file, click **Upload to data service**. The UI hashes it (sha256) into `cidHash`, pushes the raw bytes to `POST /blob`, and shows a success hint with the returned hash.
+   - A new card appears with the `cidHash`, a stubbed `kzgCommit` (derived from the hash), and the file name/size. You can `curl http://localhost:4000/blob/<cidHash>` to prove the blob is stored.
+3) Phase 1 pass → custody success (happy path):
+   - Click **Phase 1 pass** to mimic a Relay attestation; the badge turns green (`Phase1Passed`).
+   - Click **Finalize: Available** to mimic custody proofs succeeding; badge shifts to `Available` (darker green).
+4) Phase 1 failure:
+   - On another post (or re-use the same one), click **Phase 1 fail** to represent insufficient yesStake. The badge turns orange and remains unfinalized.
+5) Custody failure after a pass:
+   - Click **Phase 1 pass**, then **Finalize: Unavailable** to simulate challenged operators missing/losing proofs. Badge turns red (`Unavailable`).
+6) Repeat with multiple uploads; statuses are independent and persist in-memory while the tab is open (refresh clears them).
 
 Contract-level tests already cover Phase 1 and custody logic with mocks; see `contracts/test/`.
 
