@@ -15,7 +15,7 @@ force_free_port_if_anvil() {
 
   for _ in {1..5}; do
     local pids
-    pids=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null | sed -n 's/^p//p')
+    pids=$({ lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null || true; } | sed -n 's/^p//p')
     if [[ -z "${pids:-}" ]]; then
       return
     fi
@@ -46,7 +46,7 @@ ensure_port_free() {
     return
   fi
   local listeners
-  listeners=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null | sed -n 's/^p//p' | tr '\n' ' ' | xargs)
+  listeners=$({ lsof -iTCP:"$PORT" -sTCP:LISTEN -Fp 2>/dev/null || true; } | sed -n 's/^p//p' | tr '\n' ' ' | xargs)
   if [[ -n "${listeners:-}" ]]; then
     echo "Port $PORT is already in use by pids: $listeners. Stop them or set ANVIL_PORT."
     exit 1
