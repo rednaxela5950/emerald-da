@@ -4,5 +4,8 @@
   "rpcUrl": "http://localhost:8545",
   "registryAddress": "",
   "adapterAddress": "",
-  "verifierAddress": ""
+  "verifierAddress": "",
+  "relayEndpoint": "",
+  "relayKeyTag": 1,
+  "relayRequiredEpoch": ""
 }

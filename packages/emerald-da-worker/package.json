@@ -2,11 +2,15 @@
   "name": "emerald-da-worker",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-node": "^2.1.1",
+    "@symbioticfi/relay-client-ts": "^0.3.0",
     "ethers": "^6.13.4"
   }
 }
